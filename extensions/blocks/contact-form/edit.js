@@ -63,7 +63,9 @@ const ALLOWED_BLOCKS = [
 function JetpackContactFormEdit( {
 	attributes,
 	setAttributes,
-	adminEmail,
+	siteTitle,
+	postTitle,
+	postAuthorEmail,
 	hasInnerBlocks,
 	replaceInnerBlocks,
 	selectBlock,
@@ -165,7 +167,7 @@ function JetpackContactFormEdit( {
 	const onBlurEmailField = e => {
 		if ( e.target.value.length === 0 ) {
 			setEmailErrors( false );
-			setAttributes( { to: adminEmail } );
+			setAttributes( { to: postAuthorEmail } );
 			return;
 		}
 
@@ -183,7 +185,8 @@ function JetpackContactFormEdit( {
 	};
 
 	const renderFormSettings = () => {
-		const email = to !== undefined ? to : adminEmail;
+		const emailAddr = to !== undefined ? to : postAuthorEmail;
+		const emailSubject = subject !== undefined ? subject : '[' + siteTitle + '] ' + postTitle;
 
 		return (
 			<>
@@ -199,7 +202,7 @@ function JetpackContactFormEdit( {
 							e.stopPropagation();
 						}
 					} }
-					value={ email }
+					value={ emailAddr }
 					onBlur={ onBlurEmailField }
 					onChange={ onChangeEmailField }
 					help={ __( 'You can enter multiple email addresses separated by commas.', 'jetpack' ) }
@@ -211,8 +214,8 @@ function JetpackContactFormEdit( {
 
 				<TextControl
 					label={ __( 'Email subject line', 'jetpack' ) }
-					value={ subject }
-					placeholder={ __( 'Enter a subject', 'jetpack' ) }
+					value={ emailSubject }
+					placeholder={ emailSubject }
 					onChange={ newSubject => setAttributes( { subject: newSubject } ) }
 					help={ __(
 						'Choose a subject line that you recognize as an email from your website.',
@@ -340,8 +343,13 @@ export default compose( [
 	withSelect( ( select, props ) => {
 		const { getBlockType, getBlockVariations, getDefaultBlockVariation } = select( 'core/blocks' );
 		const { getBlocks } = select( 'core/block-editor' );
-		const { getSite } = select( 'core' );
+		const { getEditedPostAttribute } = select( 'core/editor' );
+		const { getSite, getUser } = select( 'core' );
 		const innerBlocks = getBlocks( props.clientId );
+
+		const authorId = getEditedPostAttribute( 'author' );
+		const authorEmail = authorId && getUser( authorId ) && getUser( authorId ).email;
+		const postTitle = getEditedPostAttribute( 'title' );
 
 		return {
 			blockType: getBlockType && getBlockType( props.name ),
@@ -351,7 +359,9 @@ export default compose( [
 			innerBlocks,
 			hasInnerBlocks: innerBlocks.length > 0,
 
-			adminEmail: get( getSite && getSite(), [ 'email' ] ),
+			siteTitle: get( getSite && getSite(), [ 'title' ] ),
+			postTitle: postTitle,
+			postAuthorEmail: authorEmail,
 		};
 	} ),
 	withDispatch( dispatch => {
